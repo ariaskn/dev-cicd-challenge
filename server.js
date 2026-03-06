@@ -1,4 +1,7 @@
-import express from 'express';
-const app = express();
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-app.listen(3001, () => console.log("Running on 3001"));
+const app = require('./src/app');
+
+const port = process.env.PORT || 3001;
+
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});

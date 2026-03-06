@@ -1,4 +1,11 @@
-// Test incompleto, el candidato debe arreglarlo o completarlo
-test("Health endpoint", () => {
-  expect(1).toBe(2); // intencionalmente mal
+const request = require('supertest');
+const app = require('../src/app');
+
+describe('GET /health', () => {
+  it('should return 200 and status ok', async () => {
+    const response = await request(app).get('/health');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.status).toBe('ok');
+  });
 });
