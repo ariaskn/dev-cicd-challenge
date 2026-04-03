@@ -1,0 +1,8 @@
+node_modules
+scripts
+artifacts
+__tests__
+README.md
+logs
+Dockerfile
+.github
