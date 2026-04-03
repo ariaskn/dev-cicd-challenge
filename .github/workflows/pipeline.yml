@@ -40,5 +40,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ariaskn/dev-cicd-challenge:${{ steps.variable.outputs.commit_id }}
+          tags: kevinariasdev/dev-cicd-challenge:${{ steps.variable.outputs.commit_id }}
 
