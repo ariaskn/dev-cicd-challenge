@@ -8,6 +8,7 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "dotenv": "^17.4.0",
     "express": "^4.21.2"
   },
   "devDependencies": {
