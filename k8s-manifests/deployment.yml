@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-cicd-challenge-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app_name: dev-cicd-challenge-pod
+  template:
+    metadata:
+      labels:
+        app_name: dev-cicd-challenge-pod
+    spec:
+      containers:
+        - name: dev-cicd-challenge
+          image: kevinariasdev/dev-cicd-challenge:testlocal
+          env:
+            - name: PORT
+              value: "3000"
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
