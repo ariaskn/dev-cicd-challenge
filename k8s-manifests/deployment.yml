@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: dev-cicd-challenge
-          image: kevinariasdev/dev-cicd-challenge:testlocal
+          image: kevinariasdev/dev-cicd-challenge:634ea5a
           env:
             - name: PORT
               value: "3000"
