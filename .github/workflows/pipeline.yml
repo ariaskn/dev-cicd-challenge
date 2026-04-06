@@ -27,6 +27,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: test
+    steps:
       - name: Set commit_id for variable tagging
         id: set_variable
         run: | 
@@ -48,6 +49,7 @@ jobs:
   deployStaging:
     runs-on: ubuntu-latest
     needs: build
+    steps:
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
 
@@ -70,6 +72,7 @@ jobs:
   deployProduction:
     runs-on: ubuntu-latest
     needs: deployStaging
+    steps:
       - name: Create config file for deployment in Production
         run: |
           echo "${KUBE_CONFIG_K3S}" > ~/.kube/config
