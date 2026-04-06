@@ -27,7 +27,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: test
+    outputs:
+      commit_id_output: ${{ steps.set_variable.outputs.commit_id }}
     steps:
+      - name: Clone Git
+        uses: actions/checkout@v6.0.2
+
       - name: Set commit_id for variable tagging
         id: set_variable
         run: | 
@@ -50,6 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Clone Git
+        uses: actions/checkout@v6.0.2
+
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
 
@@ -63,7 +71,7 @@ jobs:
       
       - name: Replace image tag and deploy to Staging
         run: |
-          sed -i "s/IMAGE_TAG/${{ steps.set_variable.outputs.commit_id }}/g" k8s-manifests/deployment.yml
+          sed -i "s/IMAGE_TAG/${{ needs.build.outputs.commit_id_output }}/g" k8s-manifests/deployment.yml
           kubectl apply -f k8s-manifests/
 
       - name: Smoke test in Staging
@@ -73,6 +81,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: deployStaging
     steps:
+      - name: Clone Git
+        uses: actions/checkout@v6.0.2
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
       - name: Create config file for deployment in Production
         run: |
           echo "${KUBE_CONFIG_K3S}" > ~/.kube/config
