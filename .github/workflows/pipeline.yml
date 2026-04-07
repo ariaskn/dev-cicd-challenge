@@ -60,7 +60,7 @@ jobs:
           push: true
           tags: kevinariasdev/dev-cicd-challenge:${{ steps.set_variable.outputs.commit_id }}
        
-       - name: Log result
+      - name: Log result
         if: always()
         run: |
           echo "STEP: Build and Push Docker Image" >> logs/pipeline_output.log
