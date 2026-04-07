@@ -133,6 +133,7 @@ jobs:
         env:
           KUBE_CONFIG_K3S: ${{ secrets.KUBE_CONFIG }}
         run: |
+          mkdir -p ~/.kube
           echo "${KUBE_CONFIG_K3S}" > ~/.kube/config
           chmod 600 ~/.kube/config
 
