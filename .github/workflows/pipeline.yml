@@ -171,6 +171,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: downloaded_logs
+          pattern: logs-*
 
       - name: Merge logs
         run: |
