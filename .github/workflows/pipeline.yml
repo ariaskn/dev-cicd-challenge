@@ -107,7 +107,7 @@ jobs:
 
       - name: Smoke test in Staging
         env:
-          STAGING_SERVER: ${{ secrets.STAGING_SERVER }}
+          STAGING_SERVER: ${{ secrets.STAGING_EC2_SERVER }}
         run: |
           run_step "Smoke test in Staging" "curl -X GET -f ${STAGING_SERVER}:30000/health" || exit 1
 
