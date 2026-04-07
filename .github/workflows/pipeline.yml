@@ -109,6 +109,7 @@ jobs:
         env:
           STAGING_SERVER: ${{ secrets.STAGING_EC2_SERVER }}
         run: |
+          source scripts/logs.sh
           run_step "Smoke test in Staging" "curl -X GET -f ${STAGING_SERVER}:30000/health" || exit 1
 
       - name: Upload logs
@@ -145,7 +146,8 @@ jobs:
         id: prod_smoke_test
         env:
           PRODUCTION_SERVER: ${{ secrets.PRODUCTION_SERVER }}
-        run: | 
+        run: |
+          source scripts/logs.sh
           run_step "Smoke test in Production" "curl -X GET -f ${PRODUCTION_SERVER}:30000/health" || exit 1
         
       - name: Rollback if failed
