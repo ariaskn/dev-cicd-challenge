@@ -127,7 +127,6 @@ jobs:
       - build
       - deployStaging
       - deployProduction
-    if: failure()
     steps:
       - name: Upload log artifact
         uses: actions/upload-artifact@v4
