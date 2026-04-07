@@ -1,45 +1,96 @@
-const fs = require('fs');
-const path = require('path');
+import fs from "fs";
+import path from "path";
+import OpenAI from "openai";
 
-const logPath = process.argv[2] || path.join(__dirname, '..', 'logs', 'pipeline_failure.log');
-const outputPath = path.join(__dirname, '..', 'artifacts', 'incident_report.md');
+const AIClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-function analyzeLog(logContent) {
-  const lower = logContent.toLowerCase();
+const ARTIFACTS_DIR = "../artifacts";
+const LOG_FILE = path.join(ARTIFACTS_DIR, "failed_jobs.log");
+const OUTPUT_FILE = path.join(ARTIFACTS_DIR, "incident_report.json");
 
-  let probableRootCause = 'Unknown';
-  let suggestedFix = 'Inspect logs and failing step manually.';
-  let stepFailed = 'Unknown';
-  let rollbackRequired = 'No';
-  let confidence = 'Low';
+function preprocessLogs(filePath) {
+  const logs = fs.readFileSync(filePath, "utf-8");
 
-  if (lower.includes('expected: 200') && lower.includes('received: 500')) {
-    probableRootCause = 'Health endpoint is returning 500, likely due to missing environment configuration.';
-    suggestedFix = 'Set the required APP_ENV variable in the test/runtime environment or update the app initialization.';
-    stepFailed = 'Unit Tests';
-    confidence = 'High';
+  if (logs.length > 12000) {
+    return logs.slice(0, 12000);
   }
 
-  return `# Incident Summary
+  return logs;
+}
 
-**Step failed:** ${stepFailed}
+function buildPrompt(logs) {
+  return `
+You are an AI DevOps assistant.
 
-**Probable root cause:** ${probableRootCause}
+Analyze the following CI/CD pipeline failure logs.
 
-**Confidence:** ${confidence}
+Logs:
+--------
+${logs}
+--------
 
-**Suggested fix:** ${suggestedFix}
+Return ONLY a valid JSON with this structure:
 
-**Recommended action:** Fix the issue, rerun the pipeline, and validate staging health checks.
-
-**Rollback required:** ${rollbackRequired}
+{
+  "step_failed": "test | build | deployStaging | deployProduction"
+  "summary": "Short explanation",
+  "probable_root_cause": "Most likely cause",
+  "confidence": "low | medium | high",
+  "suggested_fixes": ["fix1", "fix2"],
+  "rollback_required": true|false
+}
 `;
 }
 
-const logContent = fs.readFileSync(logPath, 'utf8');
-const report = analyzeLog(logContent);
+async function analyzeLogs(logs) {
+  const response = await AIClient.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "user",
+        content: buildPrompt(logs),
+      },
+    ],
+    temperature: 0.2,
+  });
 
-fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, report);
+  const content = response.choices[0].message.content;
 
-console.log(`Incident report generated at: ${outputPath}`);
+  try {
+    return JSON.parse(content);
+  } catch (err) {
+    return {
+      summary: "Failed to parse AI response",
+      root_cause: content,
+      confidence: "low",
+      error_type: "unknown",
+      suggested_fixes: [],
+    };
+  }
+}
+
+function saveReport(report) {
+  if (!fs.existsSync(ARTIFACTS_DIR)) {
+    fs.mkdirSync(ARTIFACTS_DIR);
+  }
+
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(report, null, 2));
+}
+
+async function main() {
+  if (!fs.existsSync(LOG_FILE)) {
+    console.error("No logs found");
+    process.exit(1);
+  }
+
+  const logs = preprocessLogs(LOG_FILE);
+  const report = await analyzeLogs(logs);
+
+  saveReport(report);
+
+  console.log("Incident report generated at:", OUTPUT_FILE);
+}
+
+main();

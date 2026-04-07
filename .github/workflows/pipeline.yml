@@ -167,6 +167,11 @@ jobs:
       - name: Clone Git
         uses: actions/checkout@v6.0.2
 
+      - name: Install node 20
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: 20
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -182,3 +187,23 @@ jobs:
         with:
           name: incident-report.log
           path: artifacts/full_logs.log
+
+      - name: Prepare failed logs
+        run: |
+          head -n 500 artifacts/full_logs.log > artifacts/failed_jobs.log
+          echo "" >> artifacts/failed_jobs.log
+          echo "=== ERRORS ===" >> artifacts/failed_jobs.log
+          grep -i "error\|fail\|exception" artifacts/full_logs.log | head -n 100 >> artifacts/failed_jobs.log
+
+      - name: Run AI Resolver
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          npm install --resolver scripts/
+          npm start --prefix scripts/
+
+      - name: Upload incident report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: incident_report.json
+          path: artifacts/incident_report.json

@@ -1,0 +1,12 @@
+{
+  "name": "dev-cicd-challenge-ai-resolver",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Dev CI/CD + AI Incident Resolution Challenge",
+  "scripts": {
+    "start": "node ai-resolver.js"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}
