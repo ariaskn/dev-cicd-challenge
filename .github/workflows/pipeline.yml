@@ -121,7 +121,9 @@ jobs:
 
   deployProduction:
     runs-on: ubuntu-latest
-    needs: deployStaging
+    needs: 
+      - build
+      - deployStaging
     steps:
       - name: Clone Git
         uses: actions/checkout@v6.0.2
@@ -141,7 +143,8 @@ jobs:
         run: |
           chmod +x scripts/logs.sh
           source scripts/logs.sh
-          run_step "Deploy to Production" "kubectl apply -f k8s-manifests/" || exit 1
+          run_step "Replace image tag and deploy to Production" "sed -i "s/IMAGE_TAG/${{ needs.build.outputs.commit_id_output }}/g" k8s-manifests/deployment.yml" || exit 1
+          run_step "Replace image tag and deploy to Production" "kubectl apply -f k8s-manifests/" || exit 1
         
       - name: Smoke test in Production
         id: prod_smoke_test
