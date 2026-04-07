@@ -121,9 +121,11 @@ jobs:
         run: kubectl rollout undo deployment/dev-cicd-challenge-deployment
 
   logFailure:
-    - name: Upload log artifact
-    if: failure()
-    uses: actions/upload-artifact@v4
-    with:
-      name: incident-report
-      path: logs/pipeline_output.log
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload log artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: incident-report
+          path: logs/pipeline_output.log
