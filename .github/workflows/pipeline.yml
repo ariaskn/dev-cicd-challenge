@@ -24,6 +24,13 @@ jobs:
           source scripts/logs.sh
           run_step "Install dependencies" "npm install" || exit 1
           run_step "Run tests" "npm test" || exit 1
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.job }}
+          path: logs/pipeline_output.log
 
   build:
     runs-on: ubuntu-latest
@@ -46,7 +53,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log result
+      - name: Docker Login - Log result
         if: always()
         run: |
           echo "STEP: Login to Docker Hub" >> logs/pipeline_output.log
@@ -60,11 +67,18 @@ jobs:
           push: true
           tags: kevinariasdev/dev-cicd-challenge:${{ steps.set_variable.outputs.commit_id }}
        
-      - name: Log result
+      - name: Build and Push - Log result
         if: always()
         run: |
           echo "STEP: Build and Push Docker Image" >> logs/pipeline_output.log
           echo "STATUS: ${{ steps.build_push.outcome }}" >> logs/pipeline_output.log
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.job }}
+          path: logs/pipeline_output.log
 
   deployStaging:
     runs-on: ubuntu-latest
@@ -83,14 +97,24 @@ jobs:
           chmod 600 ~/.kube/config
         env:
           KUBE_CONFIG_K3S_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
-      
+
       - name: Replace image tag and deploy to Staging
         run: |
-          sed -i "s/IMAGE_TAG/${{ needs.build.outputs.commit_id_output }}/g" k8s-manifests/deployment.yml
-          kubectl apply -f k8s-manifests/
+          chmod +x scripts/logs.sh
+          source scripts/logs.sh
+          run_step "Replace image tag and deploy to Staging" "sed -i "s/IMAGE_TAG/${{ needs.build.outputs.commit_id_output }}/g" k8s-manifests/deployment.yml" || exit 1
+          run_step "Replace image tag and deploy to Staging" "kubectl apply -f k8s-manifests/" || exit 1
 
       - name: Smoke test in Staging
-        run: curl -X GET -f 54.163.73.69:30000/health || exit 1
+        run: |
+          run_step "Smoke test in Staging" "curl -X GET -f 54.163.73.69:30000/health" || exit 1
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.job }}
+          path: logs/pipeline_output.log
 
   deployProduction:
     runs-on: ubuntu-latest
@@ -110,15 +134,26 @@ jobs:
           KUBE_CONFIG_K3S: ${{ secrets.KUBE_CONFIG }}
 
       - name: Deploy to Production
-        run: kubectl apply -f k8s-manifests/
-      
+        run: |
+          chmod +x scripts/logs.sh
+          source scripts/logs.sh
+          run_step "Deploy to Production" "kubectl apply -f k8s-manifests/" || exit 1
+        
       - name: Smoke test in Production
         id: prod_smoke_test
-        run: curl -X GET -f 54.163.73.69:30000/health || exit 1
+        run: | 
+          run_step "Smoke test in Production" "curl -X GET -f 54.163.73.69:30000/health" || exit 1
         
       - name: Rollback if failed
         if: steps.prod_smoke_test.outcome == 'failure'
         run: kubectl rollout undo deployment/dev-cicd-challenge-deployment
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.job }}
+          path: logs/pipeline_output.log
 
   logFailure:
     runs-on: ubuntu-latest
@@ -127,9 +162,22 @@ jobs:
       - build
       - deployStaging
       - deployProduction
+    if: always() && failure()
     steps:
+      - name: Clone Git
+        uses: actions/checkout@v6.0.2
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded_logs
+
+      - name: Merge logs
+        run: |
+          find downloaded_logs -name "*.log" -exec cat {} \; > artifacts/full_logs.log
+
       - name: Upload log artifact
         uses: actions/upload-artifact@v4
         with:
-          name: incident-report
-          path: logs/pipeline_output.log
+          name: incident-report.log
+          path: artifacts/full_logs.log
