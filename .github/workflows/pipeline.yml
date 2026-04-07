@@ -91,12 +91,12 @@ jobs:
         uses: azure/setup-kubectl@v3
 
       - name: Create config file for deployment in Staging
+        env:
+          KUBE_CONFIG_K3S_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
         run: |
           mkdir -p ~/.kube
           echo "${KUBE_CONFIG_K3S_STAGING}" > ~/.kube/config
           chmod 600 ~/.kube/config
-        env:
-          KUBE_CONFIG_K3S_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
 
       - name: Replace image tag and deploy to Staging
         run: |
@@ -106,8 +106,10 @@ jobs:
           run_step "Replace image tag and deploy to Staging" "kubectl apply -f k8s-manifests/" || exit 1
 
       - name: Smoke test in Staging
+        env:
+          STAGING_SERVER: ${{ secrets.STAGING_SERVER }}
         run: |
-          run_step "Smoke test in Staging" "curl -X GET -f 54.163.73.69:30000/health" || exit 1
+          run_step "Smoke test in Staging" "curl -X GET -f ${STAGING_SERVER}:30000/health" || exit 1
 
       - name: Upload logs
         if: always()
@@ -127,11 +129,11 @@ jobs:
         uses: azure/setup-kubectl@v3
 
       - name: Create config file for deployment in Production
+        env:
+          KUBE_CONFIG_K3S: ${{ secrets.KUBE_CONFIG }}
         run: |
           echo "${KUBE_CONFIG_K3S}" > ~/.kube/config
           chmod 600 ~/.kube/config
-        env:
-          KUBE_CONFIG_K3S: ${{ secrets.KUBE_CONFIG }}
 
       - name: Deploy to Production
         run: |
@@ -141,8 +143,10 @@ jobs:
         
       - name: Smoke test in Production
         id: prod_smoke_test
+        env:
+          PRODUCTION_SERVER: ${{ secrets.PRODUCTION_SERVER }}
         run: | 
-          run_step "Smoke test in Production" "curl -X GET -f 54.163.73.69:30000/health" || exit 1
+          run_step "Smoke test in Production" "curl -X GET -f ${PRODUCTION_SERVER}:30000/health" || exit 1
         
       - name: Rollback if failed
         if: steps.prod_smoke_test.outcome == 'failure'
